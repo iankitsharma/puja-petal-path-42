@@ -1,8 +1,11 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Address } from "@/types/models";
 import { MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AddressForm from "@/components/address/AddressForm";
 
 interface AddressListProps {
   addresses: Address[];
@@ -10,6 +13,7 @@ interface AddressListProps {
 
 const AddressList = ({ addresses }: AddressListProps) => {
   const { toast } = useToast();
+  const [showAddressForm, setShowAddressForm] = useState(false);
   
   const handleSetDefaultAddress = (addressId: string) => {
     toast({
@@ -18,11 +22,27 @@ const AddressList = ({ addresses }: AddressListProps) => {
     });
   };
   
+  const handleAddressSelection = (address: any) => {
+    // Handle the selected address
+    toast({
+      title: "Address selected",
+      description: "Your delivery address has been selected",
+    });
+    setShowAddressForm(false);
+  };
+  
+  const handleConfirm = () => {
+    setShowAddressForm(false);
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-medium">Saved Addresses</h2>
-        <Button className="bg-black text-white hover:bg-gray-800">
+        <Button 
+          className="bg-black text-white hover:bg-gray-800"
+          onClick={() => setShowAddressForm(true)}
+        >
           Add New Address
         </Button>
       </div>
@@ -80,11 +100,38 @@ const AddressList = ({ addresses }: AddressListProps) => {
       ) : (
         <div className="text-center py-12 border border-gray-200 rounded-lg">
           <p className="text-gray-500 mb-4">You haven't saved any addresses yet</p>
-          <Button className="bg-black text-white hover:bg-gray-800">
+          <Button 
+            className="bg-black text-white hover:bg-gray-800"
+            onClick={() => setShowAddressForm(true)}
+          >
             Add New Address
           </Button>
         </div>
       )}
+      
+      <Dialog open={showAddressForm} onOpenChange={setShowAddressForm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Address</DialogTitle>
+          </DialogHeader>
+          <AddressForm 
+            savedAddresses={
+              addresses.map(addr => ({
+                id: addr.id,
+                flatNumber: addr.address_line1.split(',')[0] || "",
+                street: addr.address_line2 || addr.address_line1.split(',').slice(1).join(',') || "",
+                city: addr.city,
+                state: addr.state,
+                pincode: addr.postal_code,
+                landmark: addr.landmark,
+                isDefault: addr.is_default
+              }))
+            }
+            onSelectAddress={handleAddressSelection}
+            onConfirm={handleConfirm}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

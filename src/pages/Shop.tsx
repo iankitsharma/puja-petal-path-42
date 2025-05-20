@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/layout/Layout";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { Product } from "@/types/models";
+import { Product, Address } from "@/types/models";
 import { ShoppingBag, X, Plus, Minus } from "lucide-react";
 import { useAuthCheck } from "@/utils/authUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AddressForm from "@/components/address/AddressForm";
 
 // Sample product data
 const products: Product[] = [
@@ -67,6 +69,32 @@ const products: Product[] = [
   }
 ];
 
+// Sample addresses data
+const sampleAddresses: Address[] = [
+  {
+    id: "addr1",
+    user_id: "user1",
+    address_line1: "123 Puja Lane",
+    address_line2: "Apartment 4B",
+    city: "Mumbai",
+    state: "Maharashtra",
+    postal_code: "400001",
+    landmark: "Near Shiva Temple",
+    is_default: true,
+    address_type: "home"
+  },
+  {
+    id: "addr2",
+    user_id: "user1",
+    address_line1: "456 Devotion Street",
+    city: "Mumbai",
+    state: "Maharashtra",
+    postal_code: "400002",
+    is_default: false,
+    address_type: "work"
+  }
+];
+
 interface CartItem {
   product: Product;
   quantity: number;
@@ -75,6 +103,8 @@ interface CartItem {
 const Shop = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const { toast } = useToast();
   const checkAuth = useAuthCheck();
   
@@ -161,12 +191,38 @@ const Shop = () => {
       return;
     }
     
+    // Open the address selection dialog
+    setShowAddressDialog(true);
+  };
+  
+  const handleAddressSelection = (address: any) => {
+    setSelectedAddress(address);
+    
     toast({
-      title: "Checkout initiated",
-      description: "Redirecting to payment...",
+      title: "Address selected",
+      description: "Your delivery address has been selected",
+    });
+  };
+  
+  const handleProceedToPayment = () => {
+    if (!selectedAddress) {
+      toast({
+        title: "Address required",
+        description: "Please select a delivery address",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Close the dialog
+    setShowAddressDialog(false);
+    
+    toast({
+      title: "Proceeding to payment",
+      description: "Redirecting to payment gateway...",
     });
     
-    // Here we would redirect to checkout page or process
+    // Here we would redirect to payment page or process
   };
   
   return (
@@ -350,6 +406,31 @@ const Shop = () => {
           </div>
         </div>
       </div>
+      
+      {/* Address Selection Dialog */}
+      <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Delivery Address</DialogTitle>
+          </DialogHeader>
+          <AddressForm 
+            savedAddresses={
+              sampleAddresses.map(addr => ({
+                id: addr.id,
+                flatNumber: addr.address_line1.split(',')[0] || "",
+                street: addr.address_line2 || addr.address_line1.split(',').slice(1).join(',') || "",
+                city: addr.city,
+                state: addr.state,
+                pincode: addr.postal_code,
+                landmark: addr.landmark,
+                isDefault: addr.is_default
+              }))
+            }
+            onSelectAddress={handleAddressSelection}
+            onConfirm={handleProceedToPayment}
+          />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
