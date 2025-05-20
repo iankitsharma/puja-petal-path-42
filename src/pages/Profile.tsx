@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Subscription, Order, Address, PaymentMethod } from "@/types/models";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 
 // Import refactored components
 import ProfileInfo from "@/components/profile/ProfileInfo";
@@ -129,6 +130,8 @@ const Profile = () => {
   const [selectedTab, setSelectedTab] = useState("profile");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const userData = {
     fullName: "Amit Sharma",
@@ -141,6 +144,21 @@ const Profile = () => {
     const authStatus = localStorage.getItem("isAuthenticated") === "true";
     setIsAuthenticated(authStatus);
   }, []);
+
+  const handleLogout = () => {
+    // Clear authentication state
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("userMobile");
+    setIsAuthenticated(false);
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+    
+    // Navigate to home page
+    navigate("/");
+  };
 
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
@@ -165,7 +183,7 @@ const Profile = () => {
   
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12 overflow-y-auto pb-20 md:pb-0">
         <h1 className="text-2xl font-bold mb-6">My Account</h1>
         
         <Tabs 
@@ -216,25 +234,27 @@ const Profile = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="profile" className="animate-in fade-in-50">
-            <ProfileInfo initialData={userData} />
-          </TabsContent>
-          
-          <TabsContent value="subscriptions" className="animate-in fade-in-50">
-            <SubscriptionsList subscriptions={sampleSubscriptions} />
-          </TabsContent>
-          
-          <TabsContent value="orders" className="animate-in fade-in-50">
-            <OrderHistory orders={sampleOrders} />
-          </TabsContent>
-          
-          <TabsContent value="addresses" className="animate-in fade-in-50">
-            <AddressList addresses={sampleAddresses} />
-          </TabsContent>
-          
-          <TabsContent value="payment" className="animate-in fade-in-50">
-            <PaymentMethodList paymentMethods={samplePaymentMethods} />
-          </TabsContent>
+          <div className="overflow-y-auto">
+            <TabsContent value="profile" className="animate-in fade-in-50">
+              <ProfileInfo initialData={userData} onLogout={handleLogout} />
+            </TabsContent>
+            
+            <TabsContent value="subscriptions" className="animate-in fade-in-50">
+              <SubscriptionsList subscriptions={sampleSubscriptions} />
+            </TabsContent>
+            
+            <TabsContent value="orders" className="animate-in fade-in-50">
+              <OrderHistory orders={sampleOrders} />
+            </TabsContent>
+            
+            <TabsContent value="addresses" className="animate-in fade-in-50">
+              <AddressList addresses={sampleAddresses} />
+            </TabsContent>
+            
+            <TabsContent value="payment" className="animate-in fade-in-50">
+              <PaymentMethodList paymentMethods={samplePaymentMethods} />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
     </Layout>
