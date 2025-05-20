@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Layout from "@/components/layout/Layout";
 import { Product } from "@/types/models";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthCheck } from "@/utils/authUtils";
 
 // Sample product data
 const malaProducts: Product[] = [
@@ -51,6 +52,7 @@ const Home = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const { toast } = useToast();
+  const checkAuth = useAuthCheck();
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
@@ -112,6 +114,12 @@ const Home = () => {
     });
     
     return total;
+  };
+
+  const handleOpenSubscribeDialog = () => {
+    // Check authentication before opening subscription dialog
+    if (!checkAuth()) return;
+    setIsDialogOpen(true);
   };
 
   const handleSubscribe = () => {
@@ -180,7 +188,14 @@ const Home = () => {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full border-black hover:bg-gray-50">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-black hover:bg-gray-50"
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent default to handle manually
+                        handleOpenSubscribeDialog();
+                      }}
+                    >
                       Subscribe
                     </Button>
                   </DialogTrigger>

@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/models";
 import { ShoppingBag, X, Plus, Minus } from "lucide-react";
+import { useAuthCheck } from "@/utils/authUtils";
 
 // Sample product data
 const products: Product[] = [
@@ -75,8 +76,12 @@ const Shop = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
+  const checkAuth = useAuthCheck();
   
   const addToCart = (product: Product) => {
+    // Check if user is authenticated before adding to cart
+    if (!checkAuth()) return;
+    
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.product.id === product.id);
       
@@ -144,6 +149,9 @@ const Shop = () => {
   ];
 
   const handleCheckout = () => {
+    // Check if user is authenticated before checkout
+    if (!checkAuth()) return;
+    
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
