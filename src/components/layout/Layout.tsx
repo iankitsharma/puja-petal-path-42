@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Navigation from "./Navigation";
 
 interface LayoutProps {
@@ -8,6 +8,25 @@ interface LayoutProps {
 }
 
 const Layout = ({ children, hideNavigation = false }: LayoutProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    // Check authentication status whenever the layout renders
+    const checkAuth = () => {
+      const authStatus = localStorage.getItem("isAuthenticated") === "true";
+      setIsAuthenticated(authStatus);
+    };
+    
+    checkAuth();
+    
+    // Listen for storage changes (for when login/logout happens in another tab)
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {!hideNavigation && <Navigation />}

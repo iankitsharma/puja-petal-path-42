@@ -1,24 +1,31 @@
 
 import { useState, FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  InputOTP, 
+  InputOTPGroup, 
+  InputOTPSlot 
+} from "@/components/ui/input-otp";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showOTPInput, setShowOTPInput] = useState(false);
+  const [otp, setOtp] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleSendOTP = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!mobileNumber || mobileNumber.length !== 10) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please enter a valid 10-digit mobile number",
         variant: "destructive",
       });
       return;
@@ -26,15 +33,50 @@ const Login = () => {
     
     setIsLoading(true);
     
-    // Simulating login for now
+    // Simulating OTP sending for now
+    setTimeout(() => {
+      toast({
+        title: "OTP Sent",
+        description: "A verification code has been sent to your mobile number",
+      });
+      setIsLoading(false);
+      setShowOTPInput(true);
+    }, 1000);
+  };
+
+  const handleVerifyOTP = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!otp || otp.length !== 6) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid 6-digit OTP",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Simulating OTP verification for now
     setTimeout(() => {
       toast({
         title: "Success",
         description: "Logged in successfully!",
       });
       setIsLoading(false);
-      // We would redirect or update auth state here
+      
+      // Store authentication state in localStorage (simulate auth)
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userMobile", mobileNumber);
+      
+      // Redirect to home page
+      navigate("/");
     }, 1000);
+  };
+
+  const handleSkip = () => {
+    navigate("/");
   };
 
   return (
@@ -42,50 +84,74 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">MalaFlow</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-600">
+            {showOTPInput ? "Verify Your Mobile Number" : "Sign in to your account"}
+          </p>
         </div>
         
         <div className="bg-white p-8 rounded-lg border border-gray-200">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email or Phone</Label>
-              <Input
-                id="email"
-                type="text"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-xs text-gray-600 hover:underline">
-                  Forgot Password?
-                </Link>
+          {!showOTPInput ? (
+            <form onSubmit={handleSendOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mobile">Mobile Number</Label>
+                <Input
+                  id="mobile"
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className="w-full"
+                  disabled={isLoading}
+                />
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full"
+              
+              <Button
+                type="submit"
+                className="w-full bg-black text-white hover:bg-gray-800"
                 disabled={isLoading}
-              />
-            </div>
-            
-            <Button
-              type="submit"
-              className="w-full bg-black text-white hover:bg-gray-800"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing In..." : "Sign In"}
-            </Button>
-          </form>
+              >
+                {isLoading ? "Sending OTP..." : "Send OTP"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp" className="block text-center mb-2">
+                  Enter 6-digit code sent to {mobileNumber}
+                </Label>
+                <div className="flex justify-center mb-4">
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <div className="text-center text-sm">
+                  <button 
+                    type="button" 
+                    className="text-gray-600 hover:underline" 
+                    onClick={() => setShowOTPInput(false)}
+                    disabled={isLoading}
+                  >
+                    Change mobile number
+                  </button>
+                </div>
+              </div>
+              
+              <Button
+                type="submit"
+                className="w-full bg-black text-white hover:bg-gray-800"
+                disabled={isLoading}
+              >
+                {isLoading ? "Verifying..." : "Verify & Login"}
+              </Button>
+            </form>
+          )}
           
           <div className="mt-6 text-center text-sm">
             <span className="text-gray-600">Don't have an account? </span>
@@ -93,6 +159,16 @@ const Login = () => {
               Register
             </Link>
           </div>
+        </div>
+
+        <div className="mt-4 text-center">
+          <Button 
+            variant="ghost" 
+            className="text-gray-600 hover:text-black" 
+            onClick={handleSkip}
+          >
+            Skip for now
+          </Button>
         </div>
       </div>
     </div>
