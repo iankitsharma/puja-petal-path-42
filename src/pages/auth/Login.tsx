@@ -58,9 +58,8 @@ const Login = () => {
     
     setIsLoading(true);
     
-    // Simulating OTP verification for now
-    setTimeout(() => {
-      // Store authentication state in localStorage (simulate auth)
+    try {
+      // Store authentication state in localStorage
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userMobile", mobileNumber);
       
@@ -69,11 +68,20 @@ const Login = () => {
         description: "Logged in successfully!",
       });
       
+      // Complete loading state before navigation
+      setTimeout(() => {
+        setIsLoading(false);
+        // Navigate to home page after authentication is set
+        navigate("/");
+      }, 500);
+    } catch (error) {
       setIsLoading(false);
-      
-      // Redirect to home page - must be after setting the auth state
-      navigate("/");
-    }, 1000);
+      toast({
+        title: "Error",
+        description: "Failed to login. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSkip = () => {
