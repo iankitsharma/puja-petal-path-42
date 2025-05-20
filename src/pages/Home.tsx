@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -18,8 +18,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import AddressForm, { Address } from "@/components/address/AddressForm";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 // Sample product data
 const malaProducts: Product[] = [
@@ -87,10 +88,16 @@ const Home = () => {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [duration, setDuration] = useState<'1_week' | '1_month'>('1_month');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddressSheetOpen, setIsAddressSheetOpen] = useState(false);
+  const [isPackageAddressSheetOpen, setIsPackageAddressSheetOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState<string>("");
+  const [isPromoApplied, setIsPromoApplied] = useState<boolean>(false);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const { toast } = useToast();
   const checkAuth = useAuthCheck();
   const carouselIntervalRef = useRef<number | null>(null);
+  const subscriptionSectionRef = useRef<HTMLElement | null>(null);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
@@ -129,11 +136,16 @@ const Home = () => {
       } else {
         // If next button is disabled (reached end), reset to first slide
         const prevButton = document.querySelector('.carousel-prev') as HTMLButtonElement;
-        while (!prevButton.disabled) {
-          prevButton.click();
+        if (prevButton) {
+          while (!prevButton.disabled) {
+            prevButton.click();
+          }
         }
       }
     }, 3000);
+
+    // Store reference to subscription section
+    subscriptionSectionRef.current = document.querySelector('#subscription-section');
 
     // Clean up interval on unmount
     return () => {
@@ -148,19 +160,13 @@ const Home = () => {
     
     if (selectedPackage === 'daily_1') {
       // 10% off daily 1 mala for 1 month
-      const product = malaProducts.find(p => p.id === "1");
-      if (product) {
-        total = product.price * 30 * 0.9;
-      }
-      return total;
+      return 1350; // Fixed price from package data
     } else if (selectedPackage === 'daily_2') {
       // 15% off daily 2 malas for 1 month
-      const product1 = malaProducts.find(p => p.id === "1");
-      const product2 = malaProducts.find(p => p.id === "2");
-      if (product1 && product2) {
-        total = (product1.price + product2.price) * 30 * 0.85;
-      }
-      return total;
+      return 3315; // Fixed price from package data
+    } else if (selectedPackage === 'premium') {
+      // 12% off premium mogra for 1 month
+      return 2640; // Fixed price from package data
     }
     
     // Calculate from individual selections
@@ -175,12 +181,39 @@ const Home = () => {
       }
     });
     
+    // Apply promo code discount (10% off)
+    if (isPromoApplied) {
+      total = total * 0.9;
+    }
+    
     return total;
+  };
+
+  const applyPromoCode = () => {
+    if (promoCode.toLowerCase() === 'first10' || promoCode.toLowerCase() === 'welcome10') {
+      setIsPromoApplied(true);
+      toast({
+        title: "Promo code applied!",
+        description: "10% discount has been applied to your order."
+      });
+    } else {
+      toast({
+        title: "Invalid promo code",
+        description: "Please enter a valid promo code",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleOpenSubscribeDialog = () => {
     // Check authentication before opening subscription dialog
     if (!checkAuth()) return;
+    
+    // Reset states when opening dialog
+    setPromoCode("");
+    setIsPromoApplied(false);
+    setSelectedAddress(null);
+    
     setIsDialogOpen(true);
   };
 
@@ -189,9 +222,8 @@ const Home = () => {
     if (!checkAuth()) return;
     
     // Scroll to the subscription section
-    const subscriptionSection = document.querySelector('#subscription-section');
-    if (subscriptionSection) {
-      subscriptionSection.scrollIntoView({ behavior: 'smooth' });
+    if (subscriptionSectionRef.current) {
+      subscriptionSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
     
     toast({
@@ -204,10 +236,11 @@ const Home = () => {
     // Check authentication before proceeding
     if (!checkAuth()) return;
     
-    // Set the selected package and open dialog
+    // Set the selected package
     setSelectedPackage(packageId);
     setSelectedMalas({});
-    setIsDialogOpen(true);
+    setSelectedAddress(null);
+    setIsPackageAddressSheetOpen(true);
   };
 
   const handleSubscribe = () => {
@@ -229,6 +262,23 @@ const Home = () => {
       });
       return;
     }
+
+    // Open address selection sheet
+    setIsDialogOpen(false);
+    setIsAddressSheetOpen(true);
+  };
+
+  const handleAddressConfirm = () => {
+    if (!selectedAddress) {
+      toast({
+        title: "Address required",
+        description: "Please select a delivery address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAddressSheetOpen(false);
     
     toast({
       title: "Subscription initiated",
@@ -236,7 +286,26 @@ const Home = () => {
     });
     
     // Here we would redirect to payment or show payment form
-    setIsDialogOpen(false);
+  };
+
+  const handlePackageAddressConfirm = () => {
+    if (!selectedAddress) {
+      toast({
+        title: "Address required",
+        description: "Please select a delivery address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsPackageAddressSheetOpen(false);
+    
+    toast({
+      title: "Package subscription initiated",
+      description: "Please complete the payment to confirm your subscription",
+    });
+    
+    // Here we would redirect to payment or show payment form
   };
   
   return (
@@ -305,7 +374,7 @@ const Home = () => {
         </div>
       </section>
       
-      <section id="subscription-section" className="px-4 py-12 bg-gray-50">
+      <section id="subscription-section" className="px-4 py-12 bg-gray-50" ref={subscriptionSectionRef}>
         <div className="container mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Choose Your Mala Subscription</h2>
           
@@ -455,6 +524,28 @@ const Home = () => {
                         </div>
                       </div>
                       
+                      {/* Promo Code */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <h3 className="font-medium mb-3">Have a promo code?</h3>
+                        <div className="flex space-x-2">
+                          <Input 
+                            placeholder="Enter promo code" 
+                            value={promoCode} 
+                            onChange={(e) => setPromoCode(e.target.value)}
+                          />
+                          <Button 
+                            variant="outline" 
+                            onClick={applyPromoCode}
+                            disabled={isPromoApplied || promoCode.length === 0}
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                        {isPromoApplied && (
+                          <p className="text-green-600 text-sm mt-1">10% discount applied!</p>
+                        )}
+                      </div>
+                      
                       {/* Summary */}
                       <div className="border-t border-gray-200 pt-4">
                         <h3 className="font-medium mb-3">Summary</h3>
@@ -463,13 +554,19 @@ const Home = () => {
                             <span>Total Cost</span>
                             <span className="font-semibold">₹{calculateTotal().toFixed(2)}</span>
                           </div>
+                          {isPromoApplied && (
+                            <div className="flex justify-between text-green-600">
+                              <span>Discount Applied</span>
+                              <span>10%</span>
+                            </div>
+                          )}
                         </div>
                         
                         <Button 
                           className="w-full bg-black text-white hover:bg-gray-800"
                           onClick={handleSubscribe}
                         >
-                          Proceed to Payment
+                          Proceed to Select Address
                         </Button>
                       </div>
                     </div>
@@ -480,6 +577,36 @@ const Home = () => {
           </div>
         </div>
       </section>
+      
+      {/* Address Selection Sheet for Mala Subscriptions */}
+      <Sheet open={isAddressSheetOpen} onOpenChange={setIsAddressSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Select Delivery Address</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <AddressForm 
+              onSelectAddress={setSelectedAddress}
+              onConfirm={handleAddressConfirm}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+      
+      {/* Address Selection Sheet for Package Subscriptions */}
+      <Sheet open={isPackageAddressSheetOpen} onOpenChange={setIsPackageAddressSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Select Delivery Address</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <AddressForm 
+              onSelectAddress={setSelectedAddress}
+              onConfirm={handlePackageAddressConfirm}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
       
       <section className="px-4 py-12">
         <div className="container mx-auto">
