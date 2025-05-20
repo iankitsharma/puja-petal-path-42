@@ -1,8 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
 import { Subscription, Order, Address, PaymentMethod } from "@/types/models";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import refactored components
 import ProfileInfo from "@/components/profile/ProfileInfo";
@@ -124,11 +127,41 @@ const samplePaymentMethods: PaymentMethod[] = [
 
 const Profile = () => {
   const [selectedTab, setSelectedTab] = useState("profile");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isMobile = useIsMobile();
+  
   const userData = {
     fullName: "Amit Sharma",
     email: "amit.sharma@example.com",
     phone: "+91 9876543210"
   };
+  
+  useEffect(() => {
+    // Check if user is authenticated
+    const authStatus = localStorage.getItem("isAuthenticated") === "true";
+    setIsAuthenticated(authStatus);
+  }, []);
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[50vh]">
+          <div className="text-center max-w-md w-full">
+            <h1 className="text-2xl font-bold mb-4">Sign in to view your profile</h1>
+            <p className="text-gray-600 mb-6">
+              Please login to access your profile, subscriptions, and order history.
+            </p>
+            <Link to="/login">
+              <Button className="w-full bg-black text-white hover:bg-gray-800">
+                Login
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
   
   return (
     <Layout>
@@ -140,7 +173,7 @@ const Profile = () => {
           onValueChange={setSelectedTab}
           className="space-y-6"
         >
-          <TabsList className="border-b w-full rounded-none justify-start gap-4 bg-transparent pb-0 overflow-x-auto">
+          <TabsList className={`border-b w-full rounded-none justify-start gap-4 bg-transparent pb-0 ${isMobile ? "overflow-x-auto flex" : ""}`}>
             <TabsTrigger 
               value="profile" 
               className={`rounded-none border-b-2 border-transparent pb-2 font-medium ${

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { PenSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProfileInfoProps {
   initialData: {
@@ -19,6 +20,7 @@ const ProfileInfo = ({ initialData }: ProfileInfoProps) => {
   const [userData, setUserData] = useState(initialData);
   const [editedData, setEditedData] = useState(userData);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const handleSaveProfile = () => {
     setUserData(editedData);
@@ -31,7 +33,7 @@ const ProfileInfo = ({ initialData }: ProfileInfoProps) => {
   };
   
   return (
-    <div className="max-w-md mx-auto md:mx-0">
+    <div className={`${isMobile ? 'w-full' : 'max-w-md mx-auto md:mx-0'}`}>
       <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-medium">Personal Information</h2>
@@ -83,7 +85,7 @@ const ProfileInfo = ({ initialData }: ProfileInfoProps) => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className={`${isMobile ? 'flex flex-col space-y-4' : 'space-y-4'}`}>
             <div className="space-y-1">
               <Label className="text-gray-500 text-sm">Full Name</Label>
               <p className="font-medium">{userData.fullName}</p>

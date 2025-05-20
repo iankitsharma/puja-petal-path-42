@@ -114,6 +114,17 @@ const Navigation = () => {
               </Link>
             );
           })}
+          
+          {/* Mobile Logout button when authenticated */}
+          {isAuthenticated && location.pathname === "/profile" && (
+            <button
+              onClick={handleLogout}
+              className="flex flex-col items-center justify-center w-full h-full text-gray-500"
+            >
+              <LogOut size={20} />
+              <span className="text-xs mt-1">Logout</span>
+            </button>
+          )}
         </div>
       </nav>
     </>
