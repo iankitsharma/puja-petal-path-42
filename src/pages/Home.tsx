@@ -11,6 +11,15 @@ import Layout from "@/components/layout/Layout";
 import { Product } from "@/types/models";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthCheck } from "@/utils/authUtils";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { useEffect, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Sample product data
 const malaProducts: Product[] = [
@@ -43,6 +52,34 @@ const malaProducts: Product[] = [
   }
 ];
 
+// Popular package data
+const popularPackages = [
+  {
+    id: "daily_1",
+    title: "Daily Marigold Mala",
+    description: "Daily delivery of 1 marigold mala for a month. 10% discount.",
+    originalPrice: 1500,
+    discountedPrice: 1350,
+    image: "https://images.unsplash.com/photo-1600207407889-ce31a0c724ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "daily_2",
+    title: "Daily 2 Malas Mix",
+    description: "Daily delivery of 2 malas (marigold + rose) for a month. 15% discount.",
+    originalPrice: 3900,
+    discountedPrice: 3315,
+    image: "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "premium",
+    title: "Premium Mogra Package",
+    description: "Fragrant premium mogra jasmine malas delivered daily for a month. 12% discount.",
+    originalPrice: 3000,
+    discountedPrice: 2640,
+    image: "https://images.unsplash.com/photo-1602526430780-782d6b1783fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  }
+];
+
 const Home = () => {
   const [selectedMalas, setSelectedMalas] = useState<Record<string, number>>({});
   const [deliverySlot, setDeliverySlot] = useState<'morning' | 'evening'>('morning');
@@ -53,6 +90,7 @@ const Home = () => {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const { toast } = useToast();
   const checkAuth = useAuthCheck();
+  const carouselIntervalRef = useRef<number | null>(null);
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
@@ -80,6 +118,30 @@ const Home = () => {
         : [...prev, day]
     );
   };
+
+  // Auto-scroll the carousel
+  useEffect(() => {
+    // Start auto-scroll
+    carouselIntervalRef.current = window.setInterval(() => {
+      const nextButton = document.querySelector('.carousel-next') as HTMLButtonElement;
+      if (nextButton && !nextButton.disabled) {
+        nextButton.click();
+      } else {
+        // If next button is disabled (reached end), reset to first slide
+        const prevButton = document.querySelector('.carousel-prev') as HTMLButtonElement;
+        while (!prevButton.disabled) {
+          prevButton.click();
+        }
+      }
+    }, 3000);
+
+    // Clean up interval on unmount
+    return () => {
+      if (carouselIntervalRef.current) {
+        clearInterval(carouselIntervalRef.current);
+      }
+    };
+  }, []);
   
   const calculateTotal = () => {
     let total = 0;
@@ -122,6 +184,32 @@ const Home = () => {
     setIsDialogOpen(true);
   };
 
+  const handleStartJourney = () => {
+    // Check authentication before proceeding
+    if (!checkAuth()) return;
+    
+    // Scroll to the subscription section
+    const subscriptionSection = document.querySelector('#subscription-section');
+    if (subscriptionSection) {
+      subscriptionSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    toast({
+      title: "Welcome!",
+      description: "Select your malas to start your devotional journey",
+    });
+  };
+
+  const handleSelectPackage = (packageId: string) => {
+    // Check authentication before proceeding
+    if (!checkAuth()) return;
+    
+    // Set the selected package and open dialog
+    setSelectedPackage(packageId);
+    setSelectedMalas({});
+    setIsDialogOpen(true);
+  };
+
   const handleSubscribe = () => {
     // Check if selections are made
     if (Object.keys(selectedMalas).length === 0 && !selectedPackage) {
@@ -160,14 +248,64 @@ const Home = () => {
             <p className="text-lg text-gray-600 mb-8">
               Fresh flower malas for your daily puja rituals, delivered right to your doorstep
             </p>
-            <Button className="bg-black text-white hover:bg-gray-800" size="lg">
+            <Button 
+              className="bg-black text-white hover:bg-gray-800" 
+              size="lg"
+              onClick={handleStartJourney}
+            >
               Start Your Devotional Journey
             </Button>
           </div>
         </div>
       </section>
+
+      {/* Popular Packages Carousel */}
+      <section className="px-4 py-8 bg-gray-50">
+        <div className="container mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Popular Packages</h2>
+          
+          <Carousel className="w-full max-w-5xl mx-auto">
+            <CarouselContent>
+              {popularPackages.map((pkg) => (
+                <CarouselItem key={pkg.id} className="md:basis-1/2 lg:basis-1/3">
+                  <Card className="border border-gray-100 shadow-sm">
+                    <CardContent className="p-0">
+                      <div className="aspect-square overflow-hidden rounded-t-lg">
+                        <img 
+                          src={pkg.image} 
+                          alt={pkg.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-lg font-semibold mb-2">{pkg.title}</h3>
+                        <p className="text-sm text-gray-600 mb-4">{pkg.description}</p>
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex flex-col">
+                            <span className="text-sm line-through text-gray-500">₹{pkg.originalPrice}</span>
+                            <span className="font-semibold">₹{pkg.discountedPrice}</span>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            className="border-black hover:bg-gray-50"
+                            onClick={() => handleSelectPackage(pkg.id)}
+                          >
+                            Subscribe
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="carousel-prev left-0 lg:-left-12" />
+            <CarouselNext className="carousel-next right-0 lg:-right-12" />
+          </Carousel>
+        </div>
+      </section>
       
-      <section className="px-4 py-12 bg-gray-50">
+      <section id="subscription-section" className="px-4 py-12 bg-gray-50">
         <div className="container mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Choose Your Mala Subscription</h2>
           
@@ -313,54 +451,6 @@ const Home = () => {
                                 <Label htmlFor="1_month">1 Month</Label>
                               </div>
                             </RadioGroup>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Pre-planned Packages */}
-                      <div>
-                        <h3 className="font-medium mb-3">Popular Packages</h3>
-                        <div className="space-y-3">
-                          <div 
-                            className={`p-4 border rounded-md cursor-pointer transition-all ${
-                              selectedPackage === 'daily_1' ? 'border-black bg-gray-50' : 'border-gray-200'
-                            }`}
-                            onClick={() => {
-                              setSelectedPackage(selectedPackage === 'daily_1' ? null : 'daily_1');
-                              if (selectedPackage !== 'daily_1') {
-                                setSelectedMalas({});
-                              }
-                            }}
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-medium">Daily Marigold Mala (1 Month)</h4>
-                              <div className="flex flex-col items-end">
-                                <span className="text-sm line-through text-gray-500">₹1500</span>
-                                <span className="font-semibold">₹1350</span>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600">Daily delivery of 1 marigold mala for a month. 10% discount.</p>
-                          </div>
-                          
-                          <div 
-                            className={`p-4 border rounded-md cursor-pointer transition-all ${
-                              selectedPackage === 'daily_2' ? 'border-black bg-gray-50' : 'border-gray-200'
-                            }`}
-                            onClick={() => {
-                              setSelectedPackage(selectedPackage === 'daily_2' ? null : 'daily_2');
-                              if (selectedPackage !== 'daily_2') {
-                                setSelectedMalas({});
-                              }
-                            }}
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-medium">Daily 2 Malas Mix (1 Month)</h4>
-                              <div className="flex flex-col items-end">
-                                <span className="text-sm line-through text-gray-500">₹3900</span>
-                                <span className="font-semibold">₹3315</span>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600">Daily delivery of 2 malas (marigold + rose) for a month. 15% discount.</p>
                           </div>
                         </div>
                       </div>
