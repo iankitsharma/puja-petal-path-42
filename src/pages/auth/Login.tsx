@@ -60,22 +60,25 @@ const Login = () => {
     
     // Simulating OTP verification for now
     setTimeout(() => {
-      toast({
-        title: "Success",
-        description: "Logged in successfully!",
-      });
-      setIsLoading(false);
-      
       // Store authentication state in localStorage (simulate auth)
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userMobile", mobileNumber);
       
-      // Redirect to home page
+      toast({
+        title: "Success",
+        description: "Logged in successfully!",
+      });
+      
+      setIsLoading(false);
+      
+      // Redirect to home page - must be after setting the auth state
       navigate("/");
     }, 1000);
   };
 
   const handleSkip = () => {
+    // When skipping, no authentication is set
+    // Just navigate to home page
     navigate("/");
   };
 
@@ -166,6 +169,7 @@ const Login = () => {
             variant="ghost" 
             className="text-gray-600 hover:text-black" 
             onClick={handleSkip}
+            type="button"
           >
             Skip for now
           </Button>
