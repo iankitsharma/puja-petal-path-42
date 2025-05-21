@@ -22,13 +22,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import AddressForm, { Address } from "@/components/address/AddressForm";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// Sample product data
+// Sample product data with updated prices
 const malaProducts: Product[] = [
   {
     id: "1",
     name: "Marigold Mala",
     description: "Fresh marigold flowers strung by hand for daily puja rituals",
-    price: 50,
+    price: 29,
     image_url: "https://images.unsplash.com/photo-1600207407889-ce31a0c724ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
@@ -37,46 +37,46 @@ const malaProducts: Product[] = [
     id: "2",
     name: "Rose Mala",
     description: "Beautiful rose petals crafted into an elegant mala for your deity",
-    price: 80,
+    price: 49,
     image_url: "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
   },
   {
     id: "3",
-    name: "Mogra Mala",
-    description: "Fragrant mogra jasmine flowers perfect for special occasions",
-    price: 100,
+    name: "Jasmine Mala",
+    description: "Fragrant jasmine flowers perfect for special occasions",
+    price: 79,
     image_url: "https://images.unsplash.com/photo-1602526430780-782d6b1783fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
   }
 ];
 
-// Popular package data
+// Popular package data with updated prices
 const popularPackages = [
   {
     id: "daily_1",
     title: "Daily Marigold Mala",
     description: "Daily delivery of 1 marigold mala for a month. 10% discount.",
-    originalPrice: 1500,
-    discountedPrice: 1350,
+    originalPrice: 29 * 30, // 29 * 30 days = 870
+    discountedPrice: Math.round(29 * 30 * 0.9), // 10% discount = 783
     image: "https://images.unsplash.com/photo-1600207407889-ce31a0c724ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "daily_2",
     title: "Daily 2 Malas Mix",
     description: "Daily delivery of 2 malas (marigold + rose) for a month. 15% discount.",
-    originalPrice: 3900,
-    discountedPrice: 3315,
+    originalPrice: (29 + 49) * 30, // (29 + 49) * 30 days = 2340
+    discountedPrice: Math.round((29 + 49) * 30 * 0.85), // 15% discount = 1989
     image: "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "premium",
-    title: "Premium Mogra Package",
-    description: "Fragrant premium mogra jasmine malas delivered daily for a month. 12% discount.",
-    originalPrice: 3000,
-    discountedPrice: 2640,
+    title: "Premium Jasmine Package",
+    description: "Fragrant premium jasmine malas delivered daily for a month. 12% discount.",
+    originalPrice: 79 * 30, // 79 * 30 days = 2370
+    discountedPrice: Math.round(79 * 30 * 0.88), // 12% discount = 2086
     image: "https://images.unsplash.com/photo-1602526430780-782d6b1783fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
   }
 ];
