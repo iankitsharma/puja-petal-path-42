@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +13,7 @@ import SubscriptionsList from "@/components/profile/SubscriptionsList";
 import OrderHistory from "@/components/profile/OrderHistory";
 import AddressList from "@/components/profile/AddressList";
 import PaymentMethodList from "@/components/profile/PaymentMethodList";
+import PolicySections from "@/components/profile/PolicySections";
 
 // Sample data
 const sampleSubscriptions: Subscription[] = [
@@ -160,12 +160,12 @@ const Profile = () => {
     navigate("/");
   };
 
-  // Show login prompt if not authenticated
+  // Show policies section and login prompt if not authenticated
   if (!isAuthenticated) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[50vh]">
-          <div className="text-center max-w-md w-full">
+        <div className="container mx-auto px-4 py-8 space-y-8">
+          <div className="text-center max-w-md mx-auto w-full">
             <h1 className="text-2xl font-bold mb-4">Sign in to view your profile</h1>
             <p className="text-gray-600 mb-6">
               Please login to access your profile, subscriptions, and order history.
@@ -175,6 +175,11 @@ const Profile = () => {
                 Login
               </Button>
             </Link>
+          </div>
+          
+          <div className="max-w-3xl mx-auto w-full">
+            <h2 className="text-xl font-bold mb-4">Company Policies</h2>
+            <PolicySections />
           </div>
         </div>
       </Layout>
@@ -232,6 +237,14 @@ const Profile = () => {
             >
               Payment
             </TabsTrigger>
+            <TabsTrigger 
+              value="policies" 
+              className={`rounded-none border-b-2 border-transparent pb-2 font-medium ${
+                selectedTab === "policies" ? "border-black" : ""
+              }`}
+            >
+              Policies
+            </TabsTrigger>
           </TabsList>
           
           <div className="overflow-y-auto">
@@ -253,6 +266,10 @@ const Profile = () => {
             
             <TabsContent value="payment" className="animate-in fade-in-50">
               <PaymentMethodList paymentMethods={samplePaymentMethods} />
+            </TabsContent>
+            
+            <TabsContent value="policies" className="animate-in fade-in-50">
+              <PolicySections />
             </TabsContent>
           </div>
         </Tabs>
