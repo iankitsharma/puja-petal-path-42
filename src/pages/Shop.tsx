@@ -10,6 +10,7 @@ import { ShoppingBag, X, Plus, Minus } from "lucide-react";
 import { useAuthCheck } from "@/utils/authUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AddressForm from "@/components/address/AddressForm";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Sample product data
 const products: Product[] = [
@@ -17,7 +18,7 @@ const products: Product[] = [
     id: "1",
     name: "Marigold Mala",
     description: "Fresh marigold flowers strung by hand",
-    price: 50,
+    price: 29,
     image_url: "https://images.unsplash.com/photo-1600207407889-ce31a0c724ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
@@ -26,16 +27,16 @@ const products: Product[] = [
     id: "2",
     name: "Rose Mala",
     description: "Beautiful rose petals crafted into an elegant mala",
-    price: 80,
+    price: 49,
     image_url: "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
   },
   {
     id: "3",
-    name: "Mogra Mala",
-    description: "Fragrant mogra jasmine flowers for special occasions",
-    price: 100,
+    name: "Jasmine Mala",
+    description: "Fragrant jasmine flowers for special occasions",
+    price: 79,
     image_url: "https://images.unsplash.com/photo-1602526430780-782d6b1783fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "mala",
     in_stock: true
@@ -60,8 +61,8 @@ const products: Product[] = [
   },
   {
     id: "6",
-    name: "Loose Mogra Flowers",
-    description: "Aromatic mogra flowers for special occasions",
+    name: "Loose Jasmine Flowers",
+    description: "Aromatic jasmine flowers for special occasions",
     price: 60,
     image_url: "https://images.unsplash.com/photo-1591024355637-a41003c4c04d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     category: "loose_flowers",
@@ -376,33 +377,45 @@ const Shop = () => {
               </Sheet>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="aspect-square overflow-hidden">
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-1">{product.name}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{product.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">₹{product.price}</span>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => addToCart(product)}
-                        className="border-black hover:bg-gray-50"
-                      >
-                        Add to Cart
-                      </Button>
+            {selectedCategory === "other" ? (
+              <Card className="w-full p-6 text-center">
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-semibold mb-3">Coming Soon</h3>
+                  <p className="text-muted-foreground">
+                    We're currently working on adding more products to our collection. 
+                    Please check back later for exciting new offerings!
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="aspect-square overflow-hidden">
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-medium mb-1">{product.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3">{product.description}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">₹{product.price}</span>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => addToCart(product)}
+                          className="border-black hover:bg-gray-50"
+                        >
+                          Add to Cart
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
