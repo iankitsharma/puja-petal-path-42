@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Subscription, Order, Address, PaymentMethod } from "@/types/models";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Import refactored components
 import ProfileInfo from "@/components/profile/ProfileInfo";
@@ -128,28 +129,23 @@ const samplePaymentMethods: PaymentMethod[] = [
 
 const Profile = () => {
   const [selectedTab, setSelectedTab] = useState("profile");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session, user, profile, signOut } = useAuth();
   
-  const userData = {
-    fullName: "Amit Sharma",
-    email: "amit.sharma@example.com",
-    phone: "+91 9876543210"
+  const userData = profile ? {
+    fullName: profile.full_name || "Guest User",
+    email: profile.email || "",
+    phone: profile.phone || ""
+  } : {
+    fullName: "Guest User",
+    email: "",
+    phone: ""
   };
-  
-  useEffect(() => {
-    // Check if user is authenticated
-    const authStatus = localStorage.getItem("isAuthenticated") === "true";
-    setIsAuthenticated(authStatus);
-  }, []);
 
-  const handleLogout = () => {
-    // Clear authentication state
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userMobile");
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    await signOut();
     
     toast({
       title: "Logged out",
@@ -161,7 +157,7 @@ const Profile = () => {
   };
 
   // Show policies section and login prompt if not authenticated
-  if (!isAuthenticated) {
+  if (!session) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 space-y-8">

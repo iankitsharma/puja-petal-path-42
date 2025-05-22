@@ -1,24 +1,44 @@
 
 import { useState, FormEvent, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"details" | "phoneOTP" | "emailOTP" | "success">("details");
+  const [step, setStep] = useState<"details" | "phoneOTP" | "success">("details");
   const [phoneOTP, setPhoneOTP] = useState("");
-  const [emailOTP, setEmailOTP] = useState("");
-  const [phoneOTPSent, setPhoneOTPSent] = useState(false);
-  const [emailOTPSent, setEmailOTPSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/");
+      }
+    };
+    
+    checkSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate("/");
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -28,46 +48,50 @@ const Register = () => {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const handleSendPhoneOTP = () => {
-    if (!phone) {
+  const handleSendPhoneOTP = async () => {
+    if (!phone || phone.length !== 10) {
       toast({
         title: "Phone number required",
-        description: "Please enter your phone number",
+        description: "Please enter your 10-digit phone number",
         variant: "destructive",
       });
       return;
     }
 
-    // Simulate OTP sending
     setIsLoading(true);
-    setTimeout(() => {
-      setPhoneOTPSent(true);
-      setIsLoading(false);
+
+    try {
+      // Format phone with country code
+      const formattedPhone = `+91${phone}`;
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+        options: {
+          shouldCreateUser: true
+        }
+      });
+      
+      if (error) throw error;
+
+      setPhoneOTP("");
       setCountdown(30);
       toast({
         title: "OTP Sent",
         description: "A verification code has been sent to your phone",
       });
       setStep("phoneOTP");
-    }, 1000);
-  };
-
-  const handleSendEmailOTP = () => {
-    // Simulate OTP sending
-    setIsLoading(true);
-    setTimeout(() => {
-      setEmailOTPSent(true);
-      setIsLoading(false);
-      setCountdown(30);
+    } catch (error: any) {
       toast({
-        title: "OTP Sent",
-        description: "A verification code has been sent to your email",
+        title: "Error",
+        description: error.message || "Failed to send OTP",
+        variant: "destructive",
       });
-      setStep("emailOTP");
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyPhoneOTP = () => {
+  const handleVerifyPhoneOTP = async () => {
     if (phoneOTP.length !== 6) {
       toast({
         title: "Invalid OTP",
@@ -78,42 +102,73 @@ const Register = () => {
     }
 
     setIsLoading(true);
-    // Simulate OTP verification
-    setTimeout(() => {
+
+    try {
+      // Format phone with country code
+      const formattedPhone = `+91${phone}`;
+      
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: phoneOTP,
+        type: 'sms'
+      });
+      
+      if (error) throw error;
+
+      // After successful verification, create or update user profile
+      await createUserProfile(data.user?.id);
+    } catch (error: any) {
       setIsLoading(false);
-      if (email) {
-        handleSendEmailOTP();
-      } else {
-        completeRegistration();
-      }
-    }, 1000);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to verify OTP",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleVerifyEmailOTP = () => {
-    if (emailOTP.length !== 6) {
+  const createUserProfile = async (userId?: string) => {
+    if (!userId) {
+      setIsLoading(false);
       toast({
-        title: "Invalid OTP",
-        description: "Please enter a valid 6-digit OTP",
+        title: "Error",
+        description: "User ID not found",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true);
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsLoading(false);
-      completeRegistration();
-    }, 1000);
-  };
+    try {
+      // Format phone with country code
+      const formattedPhone = `+91${phone}`;
+      
+      // Insert user profile
+      const { error } = await supabase.from('users_profile').insert({
+        id: userId,
+        phone: formattedPhone,
+        email: email || null,
+        full_name: fullName
+      });
+      
+      if (error) throw error;
 
-  const completeRegistration = () => {
-    toast({
-      title: "Registration Successful",
-      description: "Welcome to MalaFlow! You've successfully registered.",
-    });
-    setStep("success");
-    // Here you would typically redirect the user or update auth state
+      toast({
+        title: "Registration Successful",
+        description: "Welcome to MalaFlow! You've successfully registered.",
+      });
+      
+      setStep("success");
+      
+      // Navigation will be handled by the auth state listener
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmitDetails = (e: FormEvent) => {
@@ -155,9 +210,9 @@ const Register = () => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+91 9876543210"
+                placeholder="10-digit mobile number"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 className="w-full"
                 disabled={isLoading}
                 required
@@ -175,9 +230,6 @@ const Register = () => {
                 className="w-full"
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-500">
-                If email is provided, email verification will be required
-              </p>
             </div>
             
             <Button
@@ -238,59 +290,6 @@ const Register = () => {
               onClick={handleVerifyPhoneOTP}
               disabled={isLoading || phoneOTP.length !== 6}
             >
-              {isLoading ? "Verifying..." : "Verify Phone"}
-            </Button>
-          </div>
-        );
-        
-      case "emailOTP":
-        return (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-medium">Email Verification</h3>
-              <p className="text-sm text-gray-600">
-                Enter the 6-digit code sent to {email}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="emailOTP">Verification Code</Label>
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={emailOTP}
-                  onChange={(value) => setEmailOTP(value)}
-                  disabled={isLoading}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <Button 
-                type="button" 
-                variant="link"
-                onClick={handleSendEmailOTP}
-                disabled={countdown > 0 || isLoading}
-              >
-                {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
-              </Button>
-            </div>
-            
-            <Button
-              type="button"
-              className="w-full bg-black text-white hover:bg-gray-800"
-              onClick={handleVerifyEmailOTP}
-              disabled={isLoading || emailOTP.length !== 6}
-            >
               {isLoading ? "Verifying..." : "Complete Registration"}
             </Button>
           </div>
@@ -314,14 +313,14 @@ const Register = () => {
               <Button
                 type="button"
                 className="flex-1 bg-black text-white hover:bg-gray-800"
-                onClick={() => window.location.href = "/login"}
+                onClick={() => navigate("/login")}
               >
                 Go to Login
               </Button>
               <Button
                 type="button"
                 className="flex-1 border border-black bg-white text-black hover:bg-gray-100"
-                onClick={() => window.location.href = "/"}
+                onClick={() => navigate("/")}
               >
                 Explore Shop
               </Button>
@@ -338,8 +337,8 @@ const Register = () => {
           <h1 className="text-2xl font-bold mb-2">MalaFlow</h1>
           <p className="text-gray-600">
             {step === "details" ? "Create a new account" : 
-             step === "phoneOTP" ? "Verify your phone number" :
-             step === "emailOTP" ? "Verify your email" : "Welcome to MalaFlow"}
+             step === "phoneOTP" ? "Verify your phone number" : 
+             "Welcome to MalaFlow"}
           </p>
         </div>
         
@@ -355,7 +354,7 @@ const Register = () => {
             </div>
           )}
           
-          {(step === "phoneOTP" || step === "emailOTP") && (
+          {step === "phoneOTP" && (
             <div className="mt-6 text-center text-sm">
               <Button 
                 type="button" 

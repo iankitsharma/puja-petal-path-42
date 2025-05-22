@@ -1,5 +1,5 @@
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   InputOTPGroup, 
   InputOTPSlot 
 } from "@/components/ui/input-otp";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -18,6 +19,27 @@ const Login = () => {
   const [otp, setOtp] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/");
+      }
+    };
+    
+    checkSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate("/");
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSendOTP = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,15 +55,30 @@ const Login = () => {
     
     setIsLoading(true);
     
-    // Simulating OTP sending for now
-    setTimeout(() => {
+    try {
+      // Format phone with country code
+      const formattedPhone = `+91${mobileNumber}`;
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone
+      });
+      
+      if (error) throw error;
+      
       toast({
         title: "OTP Sent",
         description: "A verification code has been sent to your mobile number",
       });
-      setIsLoading(false);
       setShowOTPInput(true);
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: FormEvent) => {
@@ -59,34 +96,34 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Store authentication state in localStorage
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userMobile", mobileNumber);
+      // Format phone with country code
+      const formattedPhone = `+91${mobileNumber}`;
+      
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otp,
+        type: 'sms'
+      });
+      
+      if (error) throw error;
       
       toast({
         title: "Success",
         description: "Logged in successfully!",
       });
       
-      // Complete loading state before navigation
-      setTimeout(() => {
-        setIsLoading(false);
-        // Navigate to home page after authentication is set
-        navigate("/");
-      }, 500);
-    } catch (error) {
+      // Navigation will be handled by the auth state listener
+    } catch (error: any) {
       setIsLoading(false);
       toast({
         title: "Error",
-        description: "Failed to login. Please try again.",
+        description: error.message || "Failed to verify OTP. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const handleSkip = () => {
-    // When skipping, no authentication is set
-    // Just navigate to home page
     navigate("/");
   };
 
