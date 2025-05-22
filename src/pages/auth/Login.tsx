@@ -1,4 +1,3 @@
-
 import { useState, FormEvent, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -128,6 +127,7 @@ const Login = () => {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+      // Navigation will be handled by the auth state listener
     } catch (error: any) {
       toast({
         title: "Error",

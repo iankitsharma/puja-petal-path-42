@@ -2,6 +2,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { auth, signInWithGoogle as firebaseGoogleSignIn, signOutFirebase } from '@/integrations/firebase/client';
+import { onAuthStateChanged } from 'firebase/auth';
 
 type AuthContextType = {
   session: Session | null;
@@ -28,7 +30,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // First set up the auth state listener
+    // Firebase auth listener
+    const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        console.log("Firebase user logged in");
+      } else {
+        console.log("Firebase user logged out");
+      }
+    });
+
+    // Supabase auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
@@ -45,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -58,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       subscription.unsubscribe();
+      unsubscribeFirebase();
     };
   }, []);
 
@@ -82,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOutFirebase();
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -90,14 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-      
-      if (error) throw error;
+      await firebaseGoogleSignIn();
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;
