@@ -4,19 +4,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, ShoppingBag, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session, signOut } = useAuth();
 
   useEffect(() => {
-    // Check if user is authenticated
-    const authStatus = localStorage.getItem("isAuthenticated") === "true";
-    setIsAuthenticated(authStatus);
-
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
@@ -25,19 +22,25 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    // Clear authentication state
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userMobile");
-    setIsAuthenticated(false);
-    
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
-    
-    // Navigate to home page
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      
+      // Navigate to home page
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const navItems = [
@@ -74,7 +77,7 @@ const Navigation = () => {
                 </Link>
               ))}
               
-              {isAuthenticated ? (
+              {session ? (
                 <Button 
                   onClick={handleLogout}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
