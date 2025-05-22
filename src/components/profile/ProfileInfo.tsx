@@ -14,14 +14,19 @@ interface ProfileData {
   phone: string;
 }
 
-const ProfileInfo = () => {
+interface ProfileInfoProps {
+  initialData?: ProfileData;
+  onLogout?: () => Promise<void>;
+}
+
+const ProfileInfo = ({ initialData, onLogout }: ProfileInfoProps = {}) => {
   const { user, profile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editedData, setEditedData] = useState<ProfileData>({
-    fullName: profile?.full_name || '',
-    email: profile?.email || user?.email || '',
-    phone: profile?.phone?.replace('+91', '') || ''
+    fullName: initialData?.fullName || profile?.full_name || '',
+    email: initialData?.email || profile?.email || user?.email || '',
+    phone: initialData?.phone || profile?.phone?.replace('+91', '') || ''
   });
   
   const { toast } = useToast();
@@ -72,12 +77,16 @@ const ProfileInfo = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out",
-      });
+      if (onLogout) {
+        await onLogout();
+      } else {
+        await signOut();
+        
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out",
+        });
+      }
     } catch (error) {
       console.error("Logout error:", error);
       toast({

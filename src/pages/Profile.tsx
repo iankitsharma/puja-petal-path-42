@@ -245,7 +245,7 @@ const Profile = () => {
           
           <div className="overflow-y-auto">
             <TabsContent value="profile" className="animate-in fade-in-50">
-              <ProfileInfo initialData={userData} onLogout={handleLogout} />
+              <ProfileInfo onLogout={handleLogout} />
             </TabsContent>
             
             <TabsContent value="subscriptions" className="animate-in fade-in-50">
