@@ -4,14 +4,14 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOu
 import { supabase } from '@/integrations/supabase/client';
 
 // Your web app's Firebase configuration
-// Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_FIREBASE_PROJECT_ID",
-  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "YOUR_FIREBASE_APP_ID"
+  apiKey: "AIzaSyCCv6Tc4olnLyyP0CvkXXIQO-kaHzONRQw",
+  authDomain: "rosoryapp.firebaseapp.com",
+  projectId: "rosoryapp",
+  storageBucket: "rosoryapp.firebasestorage.app",
+  messagingSenderId: "727656330332",
+  appId: "1:727656330332:web:0d218d0e602acf5beda299",
+  measurementId: "G-0KN2TLKJ7G"
 };
 
 // Initialize Firebase
