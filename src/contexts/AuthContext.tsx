@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +9,10 @@ type AuthContextType = {
   user: User | null;
   profile: any | null;
   isLoading: boolean;
+  error: string | null;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  clearError: () => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,8 +20,10 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   isLoading: true,
+  error: null,
   signOut: async () => {},
   signInWithGoogle: async () => {},
+  clearError: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -28,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Firebase auth listener
@@ -41,15 +45,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Supabase auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Fetch user profile after a delay to prevent potential deadlocks
         if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-          }, 0);
+          try {
+            await fetchUserProfile(currentSession.user.id);
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+          }
         } else {
           setProfile(null);
         }
@@ -57,15 +62,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        fetchUserProfile(currentSession.user.id);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          await fetchUserProfile(currentSession.user.id);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setError('Failed to initialize authentication');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     return () => {
       subscription.unsubscribe();
@@ -81,39 +95,68 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return;
-      }
-
+      if (error) throw error;
       setProfile(data);
-    } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      setError(error.message);
     }
   };
 
   const signOut = async () => {
+    setIsLoading(true);
     try {
       await signOutFirebase();
-    } catch (error) {
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setError(null);
+    } catch (error: any) {
       console.error('Error signing out:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signInWithGoogle = async () => {
+    setIsLoading(true);
     try {
       await firebaseGoogleSignIn();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      setError(error.message);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const clearError = () => setError(null);
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, isLoading, signOut, signInWithGoogle }}>
+    <AuthContext.Provider 
+      value={{ 
+        session, 
+        user, 
+        profile, 
+        isLoading, 
+        error,
+        signOut, 
+        signInWithGoogle,
+        clearError
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
