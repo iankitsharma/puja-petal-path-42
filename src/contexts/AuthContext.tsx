@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,37 +35,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    // Supabase auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (!mounted) return;
+        
+        console.log('Supabase auth event:', event, currentSession?.user?.id);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          // Use setTimeout to avoid potential deadlock
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    );
+
     // Firebase auth listener
     const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!mounted) return;
+      
       if (firebaseUser) {
-        console.log("Firebase user logged in");
+        console.log("Firebase user logged in:", firebaseUser.uid);
       } else {
         console.log("Firebase user logged out");
       }
     });
 
-    // Supabase auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          try {
-            await fetchUserProfile(currentSession.user.id);
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
-          }
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
     // Check for existing session
     const initializeAuth = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -73,15 +86,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        setError('Failed to initialize authentication');
+        if (mounted) {
+          setError('Failed to initialize authentication');
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       unsubscribeFirebase();
     };
@@ -95,7 +113,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected for new users
+        throw error;
+      }
       setProfile(data);
     } catch (error: any) {
       console.error('Error fetching user profile:', error);
@@ -122,11 +143,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       await firebaseGoogleSignIn();
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      setError(error.message);
+      setError(error.message || 'Failed to sign in with Google');
       throw error;
     } finally {
       setIsLoading(false);

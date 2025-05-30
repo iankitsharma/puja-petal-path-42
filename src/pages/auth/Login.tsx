@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { 
   InputOTP, 
   InputOTPGroup, 
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthErrorHandler } from "@/components/AuthErrorHandler";
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState("");
@@ -19,28 +21,14 @@ const Login = () => {
   const [otp, setOtp] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, session, error, isLoading: authLoading } = useAuth();
   
   // Check if user is already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/");
-      }
-    };
-    
-    checkSession();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/");
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (session) {
+      navigate("/");
+    }
+  }, [session, navigate]);
 
   const handleSendOTP = async (e: FormEvent) => {
     e.preventDefault();
@@ -126,20 +114,28 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log("Starting Google sign-in from Login page");
       await signInWithGoogle();
+      console.log("Google sign-in completed successfully");
       // Navigation will be handled by the auth state listener
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sign in with Google. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Google sign-in error:", error);
+      // Error handling is now done by AuthErrorHandler
     }
   };
 
   const handleSkip = () => {
     navigate("/");
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-600">Loading authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-white animate-fade-in">
@@ -196,6 +192,8 @@ const Login = () => {
                 </svg>
                 Sign in with Google
               </Button>
+              
+              <AuthErrorHandler onRetry={handleGoogleSignIn} />
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
